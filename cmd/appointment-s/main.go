@@ -54,6 +54,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
+	// For production we need to delete gRPC Reflection for security (and urls migrate to .env file)
 	reflection.Register(grpcServer)
 
 	go func() {
