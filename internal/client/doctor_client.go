@@ -2,46 +2,37 @@ package client
 
 import (
 	"context"
-	"net/http"
-	"time"
 
 	"github.com/alikhan-s/appointment-s/internal/model"
+	doctorpb "github.com/alikhan-s/doctor-s/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type DoctorClient interface {
 	CheckDoctorExists(ctx context.Context, doctorID string) error
 }
 
-type doctorHTTPClient struct {
-	baseURL string
-	client  *http.Client
+type doctorGRPCClient struct {
+	client doctorpb.DoctorServiceClient
 }
 
-func NewDoctorHTTPClient(baseURL string) DoctorClient {
-	return &doctorHTTPClient{
-		baseURL: baseURL,
-		client: &http.Client{
-			Timeout: 5 * time.Second,
-		},
+func NewDoctorGRPCClient(conn grpc.ClientConnInterface) DoctorClient {
+	return &doctorGRPCClient{
+		client: doctorpb.NewDoctorServiceClient(conn),
 	}
 }
 
-func (c *doctorHTTPClient) CheckDoctorExists(ctx context.Context, doctorID string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/doctors/"+doctorID, nil)
-	if err != nil {
-		return model.ErrDoctorServiceDown
-	}
+func (c *doctorGRPCClient) CheckDoctorExists(ctx context.Context, doctorID string) error {
+	req := &doctorpb.GetDoctorRequest{Id: doctorID}
+	_, err := c.client.GetDoctor(ctx, req)
 
-	resp, err := c.client.Do(req)
 	if err != nil {
-		return model.ErrDoctorServiceDown
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return model.ErrDoctorNotExists
-	}
-	if resp.StatusCode != http.StatusOK {
+		st, ok := status.FromError(err)
+		if ok && st.Code() == codes.NotFound {
+			return model.ErrDoctorNotExists
+		}
 		return model.ErrDoctorServiceDown
 	}
 

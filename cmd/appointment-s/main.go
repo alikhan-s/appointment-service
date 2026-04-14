@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,12 +11,15 @@ import (
 
 	"github.com/alikhan-s/appointment-s/internal/client"
 	"github.com/alikhan-s/appointment-s/internal/repository"
-	transport "github.com/alikhan-s/appointment-s/internal/transport/http"
+	transport "github.com/alikhan-s/appointment-s/internal/transport/grpc"
 	"github.com/alikhan-s/appointment-s/internal/usecase"
+	pb "github.com/alikhan-s/appointment-s/proto"
 
-	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -31,23 +34,31 @@ func main() {
 
 	db := mongoClient.Database("appointment_db")
 
-	doctorServiceURL := "http://localhost:8081"
+	doctorServiceURL := "localhost:8081"
+	conn, err := grpc.NewClient(doctorServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Did not connect to Doctor Service: %v", err)
+	}
+	defer conn.Close()
 
-	docClient := client.NewDoctorHTTPClient(doctorServiceURL)
+	docClient := client.NewDoctorGRPCClient(conn)
 	repo := repository.NewAppointmentMongoRepo(db)
 	usecaseLayer := usecase.NewAppointmentUseCase(repo, docClient)
 
-	router := gin.Default()
-	transport.NewAppointmentHandler(router, usecaseLayer)
+	grpcServer := grpc.NewServer()
+	handler := transport.NewAppointmentHandler(usecaseLayer)
+	pb.RegisterAppointmentServiceServer(grpcServer, handler)
 
-	srv := &http.Server{
-		Addr:    ":8082",
-		Handler: router,
+	listener, err := net.Listen("tcp", ":8082")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
 	}
 
+	reflection.Register(grpcServer)
+
 	go func() {
-		log.Println("Appointment Service is running on port 8082")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Println("Appointment gRPC Service is running on port 8082")
+		if err := grpcServer.Serve(listener); err != nil {
 			log.Fatalf("Listen: %s\n", err)
 		}
 	}()
@@ -55,14 +66,8 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down Appointment server...")
+	log.Println("Shutting down Appointment gRPC server...")
 
-	ctxShutdown, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelShutdown()
-
-	if err := srv.Shutdown(ctxShutdown); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
-	}
-
+	grpcServer.GracefulStop()
 	log.Println("Appointment Server exiting")
 }
