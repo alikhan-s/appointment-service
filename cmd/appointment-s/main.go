@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alikhan-s/appointment-s/internal/client"
-	"github.com/alikhan-s/appointment-s/internal/repository"
-	transport "github.com/alikhan-s/appointment-s/internal/transport/grpc"
-	"github.com/alikhan-s/appointment-s/internal/usecase"
-	pb "github.com/alikhan-s/appointment-s/proto"
+	"github.com/alikhan-s/appointment-service/internal/client"
+	"github.com/alikhan-s/appointment-service/internal/repository"
+	transport "github.com/alikhan-s/appointment-service/internal/transport/grpc"
+	"github.com/alikhan-s/appointment-service/internal/usecase"
+	pb "github.com/alikhan-s/appointment-service/proto"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,7 +26,12 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		mongoURI = "mongodb://localhost:27017"
+	}
+
+	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
@@ -34,7 +39,11 @@ func main() {
 
 	db := mongoClient.Database("appointment_db")
 
-	doctorServiceURL := "localhost:8081"
+	doctorServiceURL := os.Getenv("DOCTOR_SERVICE_URL")
+	if doctorServiceURL == "" {
+		doctorServiceURL = "localhost:8081"
+	}
+
 	conn, err := grpc.NewClient(doctorServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Did not connect to Doctor Service: %v", err)

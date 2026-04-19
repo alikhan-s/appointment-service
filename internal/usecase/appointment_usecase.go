@@ -2,9 +2,9 @@ package usecase
 
 import (
 	"context"
-	"github.com/alikhan-s/appointment-s/internal/client"
-	"github.com/alikhan-s/appointment-s/internal/model"
-	"github.com/alikhan-s/appointment-s/internal/repository"
+	"github.com/alikhan-s/appointment-service/internal/client"
+	"github.com/alikhan-s/appointment-service/internal/model"
+	"github.com/alikhan-s/appointment-service/internal/repository"
 	"time"
 )
 

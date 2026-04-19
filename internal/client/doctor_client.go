@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/alikhan-s/appointment-s/internal/model"
-	doctorpb "github.com/alikhan-s/doctor-s/proto"
+	"github.com/alikhan-s/appointment-service/internal/model"
+	doctorpb "github.com/alikhan-s/doctor-service/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

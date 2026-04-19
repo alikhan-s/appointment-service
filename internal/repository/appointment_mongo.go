@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"github.com/alikhan-s/appointment-s/internal/model"
+	"github.com/alikhan-s/appointment-service/internal/model"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"

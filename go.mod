@@ -1,9 +1,9 @@
-module github.com/alikhan-s/appointment-s
+module github.com/alikhan-s/appointment-service
 
 go 1.25.5
 
 require (
-	github.com/alikhan-s/doctor-s v0.0.0-00010101000000-000000000000
+	github.com/alikhan-s/doctor-service v0.0.0-20260419131132-6f5029f1813e
 	go.mongodb.org/mongo-driver v1.17.9
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
@@ -24,5 +24,3 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 )
-
-replace github.com/alikhan-s/doctor-s => ../doctor-s
